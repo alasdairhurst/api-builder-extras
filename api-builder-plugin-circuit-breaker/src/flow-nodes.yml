@@ -1,0 +1,129 @@
+flow-nodes:
+  circuit-breaker:
+    name: Circuit Breaker
+    icon: circuit-breaker-icon.png
+    description: 'Adds a circuit breaker to your flow. To learn more about the Circuit-Breaker pattern please visit: https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker'
+    category: general
+    methods:
+      configCheckCircuitBreaker:
+        name: Check Circuit-Breaker
+        description: Checks the circuit breaker status and additionally initializes it.
+        parameters:
+          circuitBreakerId:
+            name: Circuit-Breaker ID
+            description: The ID of the circuit breaker. The "Config & Check" and the "Update" flow node must use the same Circuit-Breaker ID.
+            required: true
+            initialType: string
+            schema:
+              type: string
+          timeRange:
+            name: Time-Range in seconds
+            description: The time range in which any errors that have occurred are taken into account. If the maximum number of errors is reached within this time span, the circuit is opened. 
+            required: false
+            initialType: number
+            schema:
+              default: 300
+              type: number
+          maxErrorCount:
+            name: Max. Error-Count
+            description: The maximum number of errors in the specified time period. You can configure which error situations should be taken into account.
+            required: false
+            initialType: number
+            schema:
+              default: 10
+              type: number
+          halfOpenSuccesses:
+            name: Successul Half-Open requests
+            description: The number of request that must success during half-open state, before finally closing the Circuit-Breaker again.
+            required: false
+            initialType: number
+            schema:
+              default: 5
+              type: number
+          recoverPeriod:
+            name: Recover-Period in seconds
+            description: If the circuit breaker is open, after this interval the circuit breaker is half opened to let some requests through. If no further errors occur in the same interval, the circuit breaker is finally closed, otherwise it is opened again immediately.
+            required: false
+            initialType: number
+            schema:
+              default: 30
+              type: number
+          communicationError:
+            name: Communication Error
+            description: Any form of communication problem is considered an error. This includes timeouts, network errors, etc.
+            required: false
+            group: Error types
+            initialType: boolean
+            schema:
+              default: true
+              type: boolean
+          returnCodes:
+            name: Return-Codes
+            description: Controls which return codes should be treated as errors. If empty, Return-Codes are not treated as errors at all.
+            required: false
+            group: Error types
+            initialType: string
+            schema:
+              default: [300-999]
+              type: string
+          maxResponseTime:
+            name: Max Response-Time in Milliseconds
+            description: Requests are treated as errors if the specified maximum response time has been exceeded.
+            required: false
+            group: Error types
+            initialType: number
+            schema:
+              default: 100
+              type: number
+        outputs:
+          next:
+            name: Next
+            description: If the circuit breaker is closed/normal it will follow the next path. The context contains the current errorCount for information.
+            context: $.circuitBreakerStatus
+            schema:
+              type: object
+          open:
+            name: Open
+            description: The circuit breaker is open (Error situation). The context contains the current errorCount for information.
+            context: $.circuitBreakerStatus
+            schema:
+              type: object
+          error:
+            name: Error
+            description: An unexpected error happened
+            context: $.error
+            schema:
+              type: object
+      updateCircuitBreaker:
+        name: Update Circuit-Breaker
+        description: Update the circuit breaker.
+        parameters:
+          circuitBreakerId:
+            name: Circuit-Breaker ID
+            description: The ID of the circuit breaker. The "Config & Check" and the "Update" flow node must use the same Circuit-Breaker ID.
+            required: true
+            initialType: string
+            schema:
+              type: string
+          httpResponseCode:
+            name: HTTP-Response code
+            description: The HTTP response code to be used to update the circuit breaker. e.g. $.response.status
+            required: true
+            initialType: number
+            schema:
+              type: number
+        returns:
+          name: Closed
+          description: The circuit breaker was successfully updated.
+          context: $.circuitBreakerStatus
+          schema:
+            type: object
+        throws:
+          name: Error
+          description: An unexpected error was encountered.
+          context: $.error
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
